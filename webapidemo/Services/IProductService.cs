@@ -1,16 +1,16 @@
-﻿using webapidemo.Models;
+﻿using webapidemo.DTOs;
 
 namespace webapidemo.Services
 {
     public interface IProductService
     {
-        Task<IEnumerable<Product>> GetAllProduct();
+        Task<IEnumerable<ProductDTO>> GetAllProducts();
 
-        Task<Product?> GetProductById(int id);
+        Task<ProductDTO?> GetProductById(int id);
 
-        Task AddProduct(Product product);
+        Task<ProductDTO> AddProduct(CreateProductDTO dto);
 
-        Task UpdateProduct(Product product);
+        Task<ProductDTO?> UpdateProduct(int id, ProductUpdateDTO dto);
 
         Task DeleteProduct(int id);
     }

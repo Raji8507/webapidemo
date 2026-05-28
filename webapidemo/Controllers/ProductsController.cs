@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using webapidemo.Models;
+using webapidemo.DTOs;
 using webapidemo.Services;
 
 namespace webapidemo.Controllers
@@ -10,7 +10,7 @@ namespace webapidemo.Controllers
     {
         private readonly IProductService _service;
 
-        public ProductsController(ProductService service)
+        public ProductsController(IProductService service)
         {
             _service = service;
         }
@@ -18,70 +18,39 @@ namespace webapidemo.Controllers
         [HttpGet]
         public async Task<IActionResult> GetProducts()
         {
-            var products =
-                await _service
-                .GetAllProduct();
-
-            return Ok(products);
+            return Ok(await _service.GetAllProducts());
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetProductById(
-            int id)
+        public async Task<IActionResult> GetProductById(int id)
         {
-            var product =
-                await _service
-                .GetProductById(id);
-
+            var product = await _service.GetProductById(id);
             if (product == null)
-            {
-                return NotFound(new
-                {
-                    Message =
-                    "Product Not Found"
-                });
-            }
-
+                return NotFound();
             return Ok(product);
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddProduct(Product product)
+        public async Task<IActionResult> AddProduct(CreateProductDTO dto)
         {
-            await _service
-                .AddProduct(product);
-
-            return Ok(new
-            {
-                Message =
-                "Product Added Successfully"
-            });
+            var product = await _service.AddProduct(dto);
+            return Ok(product);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> UpdateProduct(Product product)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProduct(int id, ProductUpdateDTO dto)
         {
-            await _service
-                .UpdateProduct(product);
-
-            return Ok(new
-            {
-                Message =
-                "Product Updated Successfully"
-            });
+            var product = await _service.UpdateProduct(id, dto);
+            if (product == null)
+                return NotFound();
+            return Ok(product);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
-            await _service
-                .DeleteProduct(id);
-
-            return Ok(new
-            {
-                Message =
-                "Product Deleted Successfully"
-            });
+            await _service.DeleteProduct(id);
+            return Ok();
         }
     }
 }

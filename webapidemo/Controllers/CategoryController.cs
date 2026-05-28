@@ -1,17 +1,16 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using webapidemo.Models;
+using webapidemo.DTOs;
 using webapidemo.Services;
 
 namespace webapidemo.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CategoryController
-        : ControllerBase
+    public class CategoriesController : ControllerBase
     {
         private readonly ICategoryService _service;
 
-        public CategoryController(ICategoryService service)
+        public CategoriesController(ICategoryService service)
         {
             _service = service;
         }
@@ -19,70 +18,53 @@ namespace webapidemo.Controllers
         [HttpGet]
         public async Task<IActionResult> GetCategories()
         {
-            var categories =
-                await _service
-                .GetAllCategory();
-
-            return Ok(categories);
+            return Ok(await _service.GetAllCategories());
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetCategoryById(
-            int id)
+        public async Task<IActionResult> GetCategoryById(int id)
         {
-            var category =
-                await _service
-                .GetCategoryById(id);
-
+            var category = await _service.GetCategoryById(id);
             if (category == null)
-            {
-                return NotFound(
-                    new
-                    {
-                        Message =
-                        "Category Not Found"
-                    });
-            }
-
+                return NotFound();
             return Ok(category);
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddCategory(Category category)
+        public async Task<IActionResult> AddCategory(
+            [FromBody]
+            CreateCategoryDTO dto)
         {
-            await _service
-                .AddCategory(category);
-
-            return Ok(new
-            {
-                Message =
-                "Category Added Successfully"
-            });
+            var category = await _service.AddCategory(dto);
+            return CreatedAtAction(nameof(GetCategoryById),
+                new
+                {
+                    id = category.CatId
+                },
+                category);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> UpdateCategory(Category category)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateCategory(int id,
+            [FromBody]
+            CategoryUpdateDTO dto)
         {
-            await _service
-                .UpdateCategory(category);
-
-            return Ok(new
-            {
-                Message =
-                "Category Updated Successfully"
-            });
+            var category = await _service.UpdateCategory(id, dto);
+            if (category == null)
+                return NotFound();
+            return Ok(category);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(int id)
         {
-            await _service
-                .DeleteCategory(id);
-
+            var category = await _service.GetCategoryById(id);
+            if (category == null)
+                return NotFound();
+            await _service.DeleteCategory(id);
             return Ok(new
             {
-                Message =
-                "Category Deleted Successfully"
+                Message = "Category Deleted Successfully"
             });
         }
     }

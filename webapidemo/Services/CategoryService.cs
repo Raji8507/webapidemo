@@ -1,75 +1,76 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using webapidemo.Data;
+using webapidemo.DTOs;
 using webapidemo.Models;
 
 namespace webapidemo.Services
 {
-    public class CategoryService
-        : ICategoryService
+    public class CategoryService: ICategoryService
     {
         private readonly AppDbContext _context;
-
         public CategoryService(AppDbContext context)
         {
             _context = context;
         }
 
-        public async Task<IEnumerable<Category>> GetAllCategory()
+        public async Task<IEnumerable<CategoryDTO>> GetAllCategories()
         {
-            return await _context.Categories
-                .Include(c => c.Products)
+            return await _context.Categories.AsNoTracking()
+                .Select(c => new CategoryDTO
+                {
+                    CatId =
+                        c.CatId,
+
+                    CategoryName =
+                        c.CategoryName
+                })
                 .ToListAsync();
         }
 
-        public async Task<Category?> GetCategoryById(
-            int id)
+        public async Task<CategoryDTO?> GetCategoryById(int id)
         {
-            return await _context.Categories
-                .Include(c => c.Products)
-                .FirstOrDefaultAsync(
-                    c => c.CatId == id);
-        }
-
-        public async Task AddCategory(Category category)
-        {
-            await _context.Categories
-                .AddAsync(category);
-
-            await _context
-                .SaveChangesAsync();
-        }
-
-        public async Task UpdateCategory(Category category)
-        {
-            var existingCategory =
-                await _context.Categories
-                .FindAsync(
-                    category.CatId);
-
-            if (existingCategory != null)
+            var category =await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.CatId == id);
+            if (category == null)
+                return null;
+            return new CategoryDTO
             {
-                existingCategory
-                    .CategoryName =
-                    category.CategoryName;
+                CatId = category.CatId,
+                CategoryName = category.CategoryName
+            };
+        }
 
-                await _context
-                    .SaveChangesAsync();
-            }
+        public async Task<CategoryDTO> AddCategory(CreateCategoryDTO dto)
+        {
+            var category = new Category
+                {
+                    CategoryName = dto.CategoryName
+                };
+            await _context.Categories.AddAsync(category);
+            await _context.SaveChangesAsync();
+            return new CategoryDTO
+            {
+                CatId = category.CatId,
+                CategoryName = category.CategoryName
+            };
+        }
+
+        public async Task<CategoryDTO?> UpdateCategory(int id, CategoryUpdateDTO dto)
+        {
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null)
+                return null;
+            category.CategoryName = dto.CategoryName;
+            await _context.SaveChangesAsync();
+            return await GetCategoryById(id);
         }
 
         public async Task DeleteCategory(int id)
         {
-            var category =
-                await _context.Categories
-                .FindAsync(id);
-
+            var category = await _context.Categories.FindAsync(id);
             if (category != null)
             {
-                _context.Categories
-                    .Remove(category);
-
-                await _context
-                    .SaveChangesAsync();
+                _context.Categories.Remove(category);
+                await _context.SaveChangesAsync();
             }
         }
     }
