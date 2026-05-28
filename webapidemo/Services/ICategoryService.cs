@@ -1,17 +1,17 @@
 ﻿using webapidemo.Models;
 
-namespace demowebapi.Services
+namespace webapidemo.Services
 {
     public interface ICategoryService
     {
-        IEnumerable<Category> GetAllCategory();
+        Task<IEnumerable<Category>> GetAllCategory();
 
-        Category? GetCategoryById(int id);
+        Task<Category?> GetCategoryById(int id);
 
-        void AddCategory(Category category);
+        Task AddCategory(Category category);
 
-        void UpdateCategory(Category category);
+        Task UpdateCategory(Category category);
 
-        void DeleteCategory(int id);
+        Task DeleteCategory(int id);
     }
 }

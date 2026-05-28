@@ -1,75 +1,75 @@
-﻿using webapidemo.Models;
-using webapidemo.Services;
+﻿using Microsoft.EntityFrameworkCore;
+using webapidemo.Data;
+using webapidemo.Models;
 
-namespace demowebapi.Services
+namespace webapidemo.Services
 {
-    public class CategoryService : ICategoryService
+    public class CategoryService
+        : ICategoryService
     {
-        private static List<Category> _categories = new()
+        private readonly AppDbContext _context;
+
+        public CategoryService(AppDbContext context)
         {
-            new Category
-            {
-                CatId = 1,
-                CategoryName = "Electronics"
-            },
-
-            new Category
-            {
-                CatId = 2,
-                CategoryName = "Accessories"
-            },
-
-            new Category
-            {
-                CatId = 3,
-                CategoryName = "Fashion"
-            }
-        };
-
-        public IEnumerable<Category> GetAllCategory()
-        {
-            return _categories;
+            _context = context;
         }
 
-        public Category? GetCategoryById(int id)
+        public async Task<IEnumerable<Category>> GetAllCategory()
         {
-            return _categories
-                .FirstOrDefault(
+            return await _context.Categories
+                .Include(c => c.Products)
+                .ToListAsync();
+        }
+
+        public async Task<Category?> GetCategoryById(
+            int id)
+        {
+            return await _context.Categories
+                .Include(c => c.Products)
+                .FirstOrDefaultAsync(
                     c => c.CatId == id);
         }
 
-        public void AddCategory(Category category)
+        public async Task AddCategory(Category category)
         {
-            category.CatId =
-                _categories.Max(
-                    c => c.CatId) + 1;
+            await _context.Categories
+                .AddAsync(category);
 
-            _categories.Add(category);
+            await _context
+                .SaveChangesAsync();
         }
 
-        public void UpdateCategory(Category category)
+        public async Task UpdateCategory(Category category)
         {
-            var existing =
-                _categories.FirstOrDefault(
-                    c => c.CatId ==
+            var existingCategory =
+                await _context.Categories
+                .FindAsync(
                     category.CatId);
 
-            if (existing != null)
+            if (existingCategory != null)
             {
-                existing.CategoryName =
+                existingCategory
+                    .CategoryName =
                     category.CategoryName;
+
+                await _context
+                    .SaveChangesAsync();
             }
         }
 
-        public void DeleteCategory(int id)
+        public async Task DeleteCategory(int id)
         {
             var category =
-                _categories.FirstOrDefault(
-                    c => c.CatId == id);
+                await _context.Categories
+                .FindAsync(id);
 
             if (category != null)
             {
-                _categories.Remove(category);
+                _context.Categories
+                    .Remove(category);
+
+                await _context
+                    .SaveChangesAsync();
             }
         }
     }

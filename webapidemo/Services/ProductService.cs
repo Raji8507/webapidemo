@@ -1,98 +1,86 @@
-﻿using webapidemo.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using webapidemo.Data;
+using webapidemo.Models;
 
 namespace webapidemo.Services
 {
     public class ProductService : IProductService
     {
-        private static List<Product> _products = new()
+        private readonly AppDbContext _context;
+
+        public ProductService(AppDbContext context)
         {
-            new Product
-            {
-                ProductId = 101,
-                ProductName = "Laptop",
-                ProductDescription = "Dell Laptop",
-                ProductPrice = 90000,
-                CatId = 1,
-                IsAvailable = true
-            },
-
-            new Product
-            {
-                ProductId = 102,
-                ProductName = "Mobile",
-                ProductDescription = "Samsung Mobile",
-                ProductPrice = 25000,
-                CatId = 1,
-                IsAvailable = true
-            },
-
-            new Product
-            {
-                ProductId = 103,
-                ProductName = "Headphones",
-                ProductDescription = "Boat Headphones",
-                ProductPrice = 2000,
-                CatId = 2,
-                IsAvailable = true
-            }
-        };
-
-        public IEnumerable<Product> GetAllProduct()
-        {
-            return _products;
+            _context = context;
         }
 
-        public Product GetProductById(int id)
+        public async Task<IEnumerable<Product>> GetAllProduct()
         {
-            return _products
-                .FirstOrDefault(
+            return await _context.Products
+                .Include(
+                    p => p.Category)
+                .ToListAsync();
+        }
+
+        public async Task<Product?> GetProductById(int id)
+        {
+            return await _context.Products
+                .Include(
+                    p => p.Category)
+                .FirstOrDefaultAsync(
                     p => p.ProductId == id);
         }
 
-        public void AddProduct(Product product)
+        public async Task AddProduct(Product product)
         {
-            product.ProductId =
-                _products.Max(
-                    p => p.ProductId) + 1;
+            await _context.Products
+                .AddAsync(product);
 
-            _products.Add(product);
+            await _context
+                .SaveChangesAsync();
         }
 
-        public void UpdateProduct(Product product)
+        public async Task UpdateProduct(Product product)
         {
-            var existing =
-                _products.FirstOrDefault(
-                    p => p.ProductId ==
+            var existingProduct =
+                await _context.Products
+                .FindAsync(
                     product.ProductId);
 
-            if (existing != null)
+            if (existingProduct != null)
             {
-                existing.ProductName =
+                existingProduct.ProductName =
                     product.ProductName;
 
-                existing.ProductDescription =
+                existingProduct.ProductDescription =
                     product.ProductDescription;
 
-                existing.ProductPrice =
+                existingProduct.ProductPrice =
                     product.ProductPrice;
 
-                existing.CatId =
+                existingProduct.CatId =
                     product.CatId;
 
-                existing.IsAvailable =
+                existingProduct.IsAvailable =
                     product.IsAvailable;
+
+                await _context
+                    .SaveChangesAsync();
             }
         }
 
-        public void DeleteProduct(int id)
+        public async Task DeleteProduct(int id)
         {
             var product =
-                _products.FirstOrDefault(
-                    p => p.ProductId == id);
+                await _context.Products
+                .FindAsync(id);
 
             if (product != null)
             {
-                _products.Remove(product);
+                _context.Products
+                    .Remove(product);
+
+                await _context
+                    .SaveChangesAsync();
             }
         }
     }

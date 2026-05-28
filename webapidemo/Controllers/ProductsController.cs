@@ -1,168 +1,86 @@
-﻿using webapidemo.Data;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Mvc;
 using webapidemo.Models;
-using webapidemo.DTOs;
+using webapidemo.Services;
 
-namespace EFCoreDemo.Controllers
+namespace webapidemo.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        private readonly AppDbContext _appDbContext;
+        private readonly IProductService _service;
 
-        public ProductsController(AppDbContext appDbContext)
+        public ProductsController(ProductService service)
         {
-            _appDbContext = appDbContext;
+            _service = service;
         }
-
-        // GET ALL PRODUCTS
 
         [HttpGet]
         public async Task<IActionResult> GetProducts()
         {
-            var products = await _appDbContext.Products
-                .Include(p => p.Category)
-                .ToListAsync();
+            var products =
+                await _service
+                .GetAllProduct();
 
             return Ok(products);
         }
 
-        // GET PRODUCT BY ID
-
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetProductById(
+            int id)
         {
-            var product = await _appDbContext.Products
-                .Include(p => p.Category)
-                .FirstOrDefaultAsync(
-                    p => p.ProductId == id);
+            var product =
+                await _service
+                .GetProductById(id);
 
             if (product == null)
             {
                 return NotFound(new
                 {
-                    Message = $"Product with ID {id} not found."
+                    Message =
+                    "Product Not Found"
                 });
             }
 
             return Ok(product);
         }
 
-        // ADD PRODUCT
-
         [HttpPost]
-        public async Task<IActionResult> AddProduct(
-            [FromBody] CreateProductDTO createDto)
+        public async Task<IActionResult> AddProduct(Product product)
         {
-            var product = new Product
-            {
-                ProductName = createDto.ProductName,
-                ProductDescription =
-                    createDto.ProductDescription,
-
-                ProductPrice =
-                    createDto.ProductPrice,
-
-                CatId =
-                    createDto.CatId,
-
-                IsAvailable =
-                    createDto.IsAvailable
-            };
-
-            await _appDbContext.Products
-                .AddAsync(product);
-
-            await _appDbContext
-                .SaveChangesAsync();
-
-            return CreatedAtAction(
-                nameof(GetById),
-                new { id = product.ProductId },
-                product);
-        }
-
-        // UPDATE PRODUCT
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(
-            int id,
-            [FromBody] ProductUpdateDTO updateDto)
-        {
-            var product =
-                await _appDbContext.Products
-                .FindAsync(id);
-
-            if (product == null)
-            {
-                return NotFound(new
-                {
-                    Message =
-                    $"Product with ID {id} not found."
-                });
-            }
-
-            product.ProductName =
-                updateDto.ProductName;
-
-            product.ProductDescription =
-                updateDto.ProductDescription;
-
-            product.ProductPrice =
-                updateDto.ProductPrice;
-
-            product.CatId =
-                updateDto.CatId;
-
-            product.IsAvailable =
-                updateDto.IsAvailable;
-
-            _appDbContext.Entry(product)
-                .State = EntityState.Modified;
-
-            await _appDbContext
-                .SaveChangesAsync();
+            await _service
+                .AddProduct(product);
 
             return Ok(new
             {
                 Message =
-                "Product updated successfully.",
-
-                Product = product
+                "Product Added Successfully"
             });
         }
 
-        // DELETE PRODUCT
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(
-            int id)
+        [HttpPut]
+        public async Task<IActionResult> UpdateProduct(Product product)
         {
-            var product =
-                await _appDbContext.Products
-                .FindAsync(id);
-
-            if (product == null)
-            {
-                return NotFound(new
-                {
-                    Message =
-                    $"Product with ID {id} not found."
-                });
-            }
-
-            _appDbContext.Products
-                .Remove(product);
-
-            await _appDbContext
-                .SaveChangesAsync();
+            await _service
+                .UpdateProduct(product);
 
             return Ok(new
             {
                 Message =
-                "Product deleted successfully."
+                "Product Updated Successfully"
+            });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            await _service
+                .DeleteProduct(id);
+
+            return Ok(new
+            {
+                Message =
+                "Product Deleted Successfully"
             });
         }
     }

@@ -1,55 +1,38 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using webapidemo.Data;
-using webapidemo.DTOs;
 using webapidemo.Models;
+using webapidemo.Services;
 
-namespace demowebapi.Controllers
+namespace webapidemo.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class CategoryController : ControllerBase
+    public class CategoryController
+        : ControllerBase
     {
-        private readonly AppDbContext
-            _appDbContext;
+        private readonly ICategoryService _service;
 
-        public CategoryController(AppDbContext appDbContext)
+        public CategoryController(ICategoryService service)
         {
-            _appDbContext = appDbContext;
+            _service = service;
         }
 
-        // GET ALL
-
         [HttpGet]
-        public async Task<IActionResult>
-            GetCategories()
+        public async Task<IActionResult> GetCategories()
         {
             var categories =
-                await _appDbContext
-                .Categories
-                .Select(c => new CategoryDTO
-                {
-                    CatId = c.CatId,
-
-                    CategoryName =
-                        c.CategoryName
-                })
-                .ToListAsync();
+                await _service
+                .GetAllCategory();
 
             return Ok(categories);
         }
 
-        // GET BY ID
-
         [HttpGet("{id}")]
-        public async Task<IActionResult>
-            GetCategoryById(int id)
+        public async Task<IActionResult> GetCategoryById(
+            int id)
         {
             var category =
-                await _appDbContext
-                .Categories
-                .FirstOrDefaultAsync(
-                    c => c.CatId == id);
+                await _service
+                .GetCategoryById(id);
 
             if (category == null)
             {
@@ -61,126 +44,45 @@ namespace demowebapi.Controllers
                     });
             }
 
-            return Ok(new CategoryDTO
-            {
-                CatId = category.CatId,
-
-                CategoryName =
-                    category.CategoryName
-            });
+            return Ok(category);
         }
-
-        // ADD
 
         [HttpPost]
-        public async Task<IActionResult>
-            AddCategory(
-            [FromBody]
-            CreateCategoryDTO dto)
+        public async Task<IActionResult> AddCategory(Category category)
         {
-            var category =
-                new Category
-                {
-                    CategoryName =
-                        dto.CategoryName
-                };
-
-            await _appDbContext
-                .Categories
-                .AddAsync(category);
-
-            await _appDbContext
-                .SaveChangesAsync();
-
-            return CreatedAtAction(
-                nameof(GetCategoryById),
-
-                new
-                {
-                    id = category.CatId
-                },
-
-                category);
-        }
-
-        // UPDATE
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult>
-            UpdateCategory(
-            int id,
-
-            [FromBody]
-            CategoryUpdateDTO dto)
-        {
-            var category =
-                await _appDbContext
-                .Categories
-                .FindAsync(id);
-
-            if (category == null)
-            {
-                return NotFound(
-                    new
-                    {
-                        Message =
-                        "Category Not Found"
-                    });
-            }
-
-            category.CategoryName =
-                dto.CategoryName;
-
-            _appDbContext
-                .Entry(category)
-                .State =
-                EntityState.Modified;
-
-            await _appDbContext
-                .SaveChangesAsync();
+            await _service
+                .AddCategory(category);
 
             return Ok(new
             {
                 Message =
-                "Category Updated",
-
-                Category =
-                category
+                "Category Added Successfully"
             });
         }
 
-        // DELETE
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult>
-            DeleteCategory(int id)
+        [HttpPut]
+        public async Task<IActionResult> UpdateCategory(Category category)
         {
-            var category =
-                await _appDbContext
-                .Categories
-                .FindAsync(id);
-
-            if (category == null)
-            {
-                return NotFound(
-                    new
-                    {
-                        Message =
-                        "Category Not Found"
-                    });
-            }
-
-            _appDbContext
-                .Categories
-                .Remove(category);
-
-            await _appDbContext
-                .SaveChangesAsync();
+            await _service
+                .UpdateCategory(category);
 
             return Ok(new
             {
                 Message =
-                "Category Deleted"
+                "Category Updated Successfully"
+            });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            await _service
+                .DeleteCategory(id);
+
+            return Ok(new
+            {
+                Message =
+                "Category Deleted Successfully"
             });
         }
     }

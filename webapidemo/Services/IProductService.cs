@@ -4,14 +4,14 @@ namespace webapidemo.Services
 {
     public interface IProductService
     {
-        IEnumerable<Product> GetAllProduct();
+        Task<IEnumerable<Product>> GetAllProduct();
 
-        Product GetProductById(int id);
+        Task<Product?> GetProductById(int id);
 
-        void AddProduct(Product product);
+        Task AddProduct(Product product);
 
-        void UpdateProduct(Product product);
+        Task UpdateProduct(Product product);
 
-        void DeleteProduct(int id);
+        Task DeleteProduct(int id);
     }
 }
