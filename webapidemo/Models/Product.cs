@@ -1,27 +1,24 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace demowebapi.Models
+namespace webapidemo.Models
 {
     public class Product
     {
-        [Required]
-        public int ProductId { get; set; } // PK
+        [Key]
+        public int ProductId { get; set; }
 
         [Required]
-        public string ProductName { get; set; }
+        public string ProductName { get; set; } = string.Empty;
 
         public string ProductDescription { get; set; } = string.Empty;
+
+        public int CatId { get; set; }
 
         [Range(1, 100000.00)]
         public decimal ProductPrice { get; set; }
 
-        [Required]
         public bool IsAvailable { get; set; }
 
-        // Foreign Key
-        public int CatId { get; set; }
-
-        // Navigation Property
         public Category? Category { get; set; }
     }
 }

@@ -1,73 +1,49 @@
-﻿using demowebapi.Models;
+﻿using webapidemo.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using webapidemo.Models;
 using webapidemo.DTOs;
 
-namespace demowebapi.Controllers
+namespace EFCoreDemo.Controllers
 {
-    [Route("api/[controller]/[action]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class ProductsController : ControllerBase
     {
-        // Category List
-        private readonly List<Category> _categories = new List<Category>
+        private readonly AppDbContext _appDbContext;
+
+        public ProductsController(AppDbContext appDbContext)
         {
-            new Category { CatId = 1, CategoryName = "Electronics" },
-            new Category { CatId = 2, CategoryName = "Accessories" },
-            new Category { CatId = 3, CategoryName = "Fashion" }
-        };
-
-        // Product List
-        private readonly List<Product> _products = new()
-        {
-            new Product
-            {
-                ProductId = 101,
-                ProductName = "Laptop",
-                ProductDescription = "Dell Laptop",
-                ProductPrice = 90000,
-                IsAvailable = true,
-                CatId = 1
-            },
-
-            new Product
-            {
-                ProductId = 102,
-                ProductName = "Mobile",
-                ProductDescription = "Samsung Mobile",
-                ProductPrice = 25000,
-                IsAvailable = true,
-                CatId = 1
-            },
-
-            new Product
-            {
-                ProductId = 103,
-                ProductName = "Headphones",
-                ProductDescription = "Boat Headphones",
-                ProductPrice = 2000,
-                IsAvailable = true,
-                CatId = 2
-            }
-        };
+            _appDbContext = appDbContext;
+        }
 
         // GET ALL PRODUCTS
+
         [HttpGet]
-        public ActionResult<IEnumerable<Product>> GetProducts()
+        public async Task<IActionResult> GetProducts()
         {
-            return Ok(_products);
+            var products = await _appDbContext.Products
+                .Include(p => p.Category)
+                .ToListAsync();
+
+            return Ok(products);
         }
 
         // GET PRODUCT BY ID
-        [HttpGet("{pid}")]
-        public ActionResult<Product> GetProductById(int pid)
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
         {
-            var product = _products.FirstOrDefault(p => p.ProductId == pid);
+            var product = await _appDbContext.Products
+                .Include(p => p.Category)
+                .FirstOrDefaultAsync(
+                    p => p.ProductId == id);
 
             if (product == null)
             {
                 return NotFound(new
                 {
-                    Message = "Product Not Found"
+                    Message = $"Product with ID {id} not found."
                 });
             }
 
@@ -75,33 +51,119 @@ namespace demowebapi.Controllers
         }
 
         // ADD PRODUCT
+
         [HttpPost]
-        public ActionResult<ProductDTO> AddProduct(ProductCreateDTO product)
+        public async Task<IActionResult> AddProduct(
+            [FromBody] CreateProductDTO createDto)
         {
-            var newproduct = new Product
+            var product = new Product
             {
-                ProductId = _products.Max(p => p.ProductId + 1),
-                ProductName = product.ProductName,
-                ProductPrice = product.ProductPrice,
-                CatId = product.CatId,
-                IsAvailable = product.IsAvailable,
-                ProductDescription = product.ProductDescription
+                ProductName = createDto.ProductName,
+                ProductDescription =
+                    createDto.ProductDescription,
+
+                ProductPrice =
+                    createDto.ProductPrice,
+
+                CatId =
+                    createDto.CatId,
+
+                IsAvailable =
+                    createDto.IsAvailable
             };
 
-            _products.Add(newproduct);
+            await _appDbContext.Products
+                .AddAsync(product);
 
-            var pDTO = new ProductDTO
+            await _appDbContext
+                .SaveChangesAsync();
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = product.ProductId },
+                product);
+        }
+
+        // UPDATE PRODUCT
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(
+            int id,
+            [FromBody] ProductUpdateDTO updateDto)
+        {
+            var product =
+                await _appDbContext.Products
+                .FindAsync(id);
+
+            if (product == null)
             {
-                ProductId = newproduct.ProductId,
-                ProductName = newproduct.ProductName,
-                ProductPrice = newproduct.ProductPrice,
-                CatId = newproduct.CatId,
-                IsAvailable = newproduct.IsAvailable,
-                ProductDescription = newproduct.ProductDescription
-            };
+                return NotFound(new
+                {
+                    Message =
+                    $"Product with ID {id} not found."
+                });
+            }
 
-            return CreatedAtAction(nameof(GetProductById),
-                new { pid = pDTO.ProductId }, pDTO);
+            product.ProductName =
+                updateDto.ProductName;
+
+            product.ProductDescription =
+                updateDto.ProductDescription;
+
+            product.ProductPrice =
+                updateDto.ProductPrice;
+
+            product.CatId =
+                updateDto.CatId;
+
+            product.IsAvailable =
+                updateDto.IsAvailable;
+
+            _appDbContext.Entry(product)
+                .State = EntityState.Modified;
+
+            await _appDbContext
+                .SaveChangesAsync();
+
+            return Ok(new
+            {
+                Message =
+                "Product updated successfully.",
+
+                Product = product
+            });
+        }
+
+        // DELETE PRODUCT
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(
+            int id)
+        {
+            var product =
+                await _appDbContext.Products
+                .FindAsync(id);
+
+            if (product == null)
+            {
+                return NotFound(new
+                {
+                    Message =
+                    $"Product with ID {id} not found."
+                });
+            }
+
+            _appDbContext.Products
+                .Remove(product);
+
+            await _appDbContext
+                .SaveChangesAsync();
+
+            return Ok(new
+            {
+                Message =
+                "Product deleted successfully."
+            });
         }
     }
 }

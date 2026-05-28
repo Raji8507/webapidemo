@@ -11,13 +11,13 @@ namespace webapidemo.DTOs
         public string ProductName { get; set; }
 
         public string ProductDescription { get; set; } = string.Empty;
+        public int CatId { get; set; }
 
         [Range(1, 100000.00)]
         public decimal ProductPrice { get; set; }
 
         [Required]
         public bool IsAvailable { get; set; }
-        public int CatId { get; set; }
 
     }
 }
